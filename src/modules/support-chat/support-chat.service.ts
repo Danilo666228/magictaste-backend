@@ -1,0 +1,191 @@
+import { PrismaService } from '@/core/prisma/prisma.service'
+import { Injectable } from '@nestjs/common'
+
+import { ActiveChat, ChatMessageDto } from './types/chat.types'
+
+@Injectable()
+export class SupportChatService {
+	private connectedUsers = new Map<string, string>() // userId -> socketId
+	private activeChats = new Map<string, ActiveChat>()
+
+	constructor(private prismaService: PrismaService) {}
+
+	public userConnected(userId: string, socketId: string) {
+		this.connectedUsers.set(userId, socketId)
+	}
+
+	public userDisconnected(socketId: string) {
+		for (const [userId, connSocketId] of this.connectedUsers.entries()) {
+			if (connSocketId === socketId) {
+				this.connectedUsers.delete(userId)
+				break
+			}
+		}
+	}
+
+	public async saveMessage(messageData: ChatMessageDto) {
+		const savedMessage = await this.prismaService.supportMessage.create({
+			data: {
+				message: messageData.content,
+				senderId: messageData.sender.id,
+				receiverId: messageData.receiver.id,
+				createdAt: messageData.createdAt,
+				updatedAt: messageData.updatedAt
+			}
+		})
+
+		return savedMessage
+	}
+
+	public async getChatHistory(userId: string) {
+		return this.prismaService.supportMessage.findMany({
+			where: {
+				OR: [{ senderId: userId }, { receiverId: userId }]
+			},
+			include: {
+				sender: true,
+				receiver: true
+			},
+			orderBy: {
+				createdAt: 'asc'
+			}
+		})
+	}
+
+	public getConnectedUsers() {
+		return Array.from(this.connectedUsers.keys())
+	}
+
+	public getSocketId(userId: string) {
+		return this.connectedUsers.get(userId)
+	}
+
+	public async getSupportUsers() {
+		return this.prismaService.account.findMany({
+			where: {
+				roles: {
+					some: {
+						role: {
+							name: 'SUPPORT'
+						}
+					}
+				}
+			}
+		})
+	}
+
+	public async startChat(userId: string) {
+		try {
+			const user = await this.prismaService.account.findUnique({
+				where: { id: userId }
+			})
+
+			if (!user) {
+				throw new Error('User not found')
+			}
+
+			// Проверяем, есть ли уже активный чат
+			const existingChat = this.activeChats.get(userId)
+			if (existingChat) {
+				return existingChat
+			}
+
+			// Создаем новый чат
+			const newChat: ActiveChat = {
+				account: user,
+				status: 'new',
+				lastMessage: '',
+				unreadCount: 0,
+				createdAt: new Date(),
+				updatedAt: new Date()
+			}
+
+			this.activeChats.set(userId, newChat)
+
+			// Уведомляем администраторов о новом чате
+			this.notifySupportAboutNewChat(userId, user.userName)
+
+			return newChat
+		} catch (error) {
+			console.error('[Support Service] Error starting chat:', error)
+			throw error
+		}
+	}
+
+	private async notifySupportAboutNewChat(userId: string, userName: string) {
+		const supportUsers = await this.getSupportUsers()
+
+		for (const support of supportUsers) {
+			const supportSocketId = this.getSocketId(support.id)
+			if (supportSocketId) {
+				// Здесь должен быть код для отправки уведомления через сокет
+				console.log(`[Support Service] Notifying support ${support.id} about new chat from ${userName}`)
+			}
+		}
+	}
+
+	public async assignChatToSupport(userId: string, supportId: string) {
+		const chat = this.activeChats.get(userId)
+
+		if (!chat) {
+			throw new Error('Chat not found')
+		}
+
+		const support = await this.prismaService.account.findUnique({
+			where: { id: supportId }
+		})
+
+		if (!support) {
+			throw new Error('Support user not found')
+		}
+
+		chat.status = 'active'
+		chat.assignedAdmin = support
+		chat.updatedAt = new Date()
+
+		this.activeChats.set(userId, chat)
+
+		// Уведомляем пользователя о подключении поддержки
+		const userSocketId = this.getSocketId(userId)
+		if (userSocketId) {
+			// Здесь должен быть код для отправки уведомления через сокет
+			console.log(`[Support Service] Notifying user ${userId} about support connection`)
+		}
+
+		return chat
+	}
+
+	public async finishChat(userId: string) {
+		const chat = this.activeChats.get(userId)
+
+		if (!chat) {
+			throw new Error('Chat not found')
+		}
+
+		chat.status = 'finished'
+		chat.updatedAt = new Date()
+
+		// Удаляем чат из активных
+		this.activeChats.delete(userId)
+
+		return { success: true, message: 'Chat finished successfully' }
+	}
+
+	public async getActiveChats() {
+		const activeChatsArray = Array.from(this.activeChats.values())
+			.filter(chat => chat.status !== 'finished')
+			.sort((a, b) => {
+				// Сначала новые чаты
+				if (a.status === 'new' && b.status !== 'new') return -1
+				if (a.status !== 'new' && b.status === 'new') return 1
+				// Затем по времени создания
+				return b.createdAt.getTime() - a.createdAt.getTime()
+			})
+
+		return activeChatsArray
+	}
+
+	public async getUserChat(userId: string) {
+		return this.activeChats.get(userId)
+	}
+}

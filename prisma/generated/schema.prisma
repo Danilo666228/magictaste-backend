@@ -1,0 +1,482 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "./generated"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("POSTGRES_URI")
+}
+
+model Role {
+  id           String        @id @default(cuid())
+  name         RoleName      @unique
+  accountRoles AccountRole[]
+
+  @@map("roles")
+}
+
+model AccountRole {
+  id String @id @default(cuid())
+
+  accountId String @map("account_id")
+  roleId    String @map("role_id")
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  role    Role    @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("account_roles")
+}
+
+model Cart {
+  id String @id @default(cuid())
+
+  accountId String  @map("account_id")
+  account   Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  productId String  @map("product_id")
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  quantity Int @default(1)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("carts")
+}
+
+model Category {
+  id       String  @id @default(cuid())
+  title    String  @unique
+  imageUrl String?
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  products  Product[]
+
+  @@map("categories")
+}
+
+model Ingredient {
+  id       String  @id @default(cuid())
+  title    String  @unique
+  imageUrl String?
+
+  createdAt          DateTime             @default(now()) @map("created_at")
+  updatedAt          DateTime             @updatedAt @map("updated_at")
+  productIngredients ProductIngredients[]
+
+  @@map("ingredients")
+}
+
+model ProductIngredients {
+  id           String     @id @default(cuid())
+  productId    String     @map("product_id")
+  product      Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  ingredientId String     @map("ingredient_id")
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("product_ingredients")
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  weight      Float    @default(0)
+  imageUrl    String?  @map("image_url")
+  price       Float    @default(0)
+  onSale      Boolean  @default(true)
+  categoryId  String   @map("category_id")
+  category    Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime             @default(now()) @map("created_at")
+  updatedAt   DateTime             @updatedAt @map("updated_at")
+  cart        Cart[]
+  favorite    Favorite[]
+  ingredients ProductIngredients[]
+  orderItem   OrderItem[]
+  comments    ProductComment[]
+
+  @@index([categoryId])
+  @@index([onSale])
+  @@map("products")
+}
+
+model Favorite {
+  id        String  @id @default(cuid())
+  productId String  @map("product_id")
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  accountId String  @map("account_id")
+  account   Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([accountId, productId])
+  @@map("favorites")
+}
+
+model AccountSettings {
+  id String @id @default(cuid())
+
+  accountId String  @unique @map("account_id")
+  account   Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  telegramId String? @unique
+
+  isVerifiedEmail Boolean @default(false) @map("is_verified_email")
+
+  isTwoFactorEmailEnabled Boolean @default(false) @map("is_two_factor_email_enabled")
+
+  isTwoFactorTotpEnabled Boolean @default(false) @map("is_two_factor_totp_enabled")
+
+  totpSecret String? @map("totp_secret")
+
+  siteNotification     Boolean @default(true) @map("site_notification")
+  telegramNotification Boolean @default(false) @map("telegram_notification")
+
+  @@map("account_settings")
+}
+
+model Account {
+  id String @id @default(cuid())
+
+  email    String @unique
+  password String
+
+  userName String @unique
+
+  picture String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  roles            AccountRole[]
+  cart             Cart[]
+  favorites        Favorite[]
+  orders           Order[]
+  productComments  ProductComment[]
+  deliveryAdresses DeliveryAddress[]
+  notifications    Notification[]
+  posts            Post[]
+  postComments     PostComment[]
+  postLikes        PostLike[]
+  tokens           Token[]
+  accountSettings  AccountSettings?
+  accountLoyalty   AccountLoyalty?
+
+  sentMessages     SupportMessage[] @relation("SenderRelation")
+  receivedMessages SupportMessage[] @relation("ReceiverRelation")
+
+  @@index([email])
+  @@map("accounts")
+}
+
+model DeliveryAddress {
+  id        String  @id @default(cuid())
+  accountId String  @map("account_id")
+  account   Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  city      String
+  street    String
+  house     String
+  flat      String
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("delivery_addresses")
+}
+
+model Order {
+  id String @id @default(cuid())
+
+  status OrderStatus @default(WAITING_FOR_PAYMENT)
+
+  firstName         String  @map("first_name")
+  lastName          String  @map("last_name")
+  phone             String
+  email             String? @map("email")
+  deliveryAddressId String? @map("delivery_address_id")
+
+  deliveryAddress Json?
+
+  deliveryType DeliveryType @map("delivery_type")
+
+  paymentMethod PaymentMethod @map("payment_method")
+
+  paymentStatus PaymentStatus @map("payment_status")
+
+  comment String?
+
+  items OrderItem[]
+  total Float
+
+  account   Account? @relation(fields: [accountId], references: [id])
+  accountId String?  @map("account_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([accountId])
+  @@index([status])
+  @@map("orders")
+}
+
+model OrderItem {
+  id      String  @id @default(cuid())
+  order   Order?  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId String? @map("order_id")
+
+  quantity Int
+  price    Float
+
+  productTitle       String
+  productDescription String?
+  productImageUrl    String?
+
+  productId String  @map("product_id")
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("order_items")
+}
+
+model ProductComment {
+  id      String  @id @default(cuid())
+  comment String?
+  rating  Int?
+
+  parentId String?          @map("parent_id")
+  parent   ProductComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  ProductComment[] @relation("CommentReplies")
+
+  productId String  @map("product_id")
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  accountId String  @map("account_id")
+  account   Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([productId])
+  @@index([accountId])
+  @@index([parentId])
+  @@map("product_comments")
+}
+
+model Post {
+  id          String  @id @default(cuid())
+  title       String
+  description String?
+  imageUrl    String? @map("image_url")
+  published   Boolean @default(false) @map("published")
+
+  authorId String  @map("author_id")
+  author   Account @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  comments PostComment[]
+  likes    PostLike[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([authorId])
+  @@index([published])
+  @@map("posts")
+}
+
+model PostComment {
+  id      String @id @default(cuid())
+  comment String
+
+  authorId String  @map("author_id")
+  author   Account @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  postId String @map("post_id")
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([postId])
+  @@index([authorId])
+  @@map("post_comments")
+}
+
+model PostLike {
+  id     String @id @default(cuid())
+  postId String @map("post_id")
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  accountId String  @map("account_id")
+  account   Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([postId, accountId])
+  @@map("post_likes")
+}
+
+model Token {
+  id        String     @id @default(cuid())
+  token     String     @unique
+  type      TokenTypes
+  accountId String
+  account   Account?   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  expiresIn DateTime
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  @@map("tokens")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  title     String
+  message   String
+  link      String
+  type      NotificationType
+  isRead    Boolean          @default(false)
+  accountId String           @map("account_id")
+  account   Account?         @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("notifications")
+}
+
+model SupportMessage {
+  id      String @id @default(uuid())
+  message String
+
+  senderId   String
+  receiverId String
+
+  sender   Account @relation("SenderRelation", fields: [senderId], references: [id])
+  receiver Account @relation("ReceiverRelation", fields: [receiverId], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("support_messages")
+}
+
+model LoyaltyLevel {
+  id                  String           @id @default(uuid())
+  name                String
+  minPoints           Int
+  bonusPercentage     Float
+  hasPriorityDelivery Boolean          @default(false)
+  hasPersonalManager  Boolean          @default(false)
+  hasExclusiveAccess  Boolean          @default(false)
+  additionalBenefits  Json?
+  accountLoyalties    AccountLoyalty[]
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+}
+
+model AccountLoyalty {
+  id             String               @id @default(uuid())
+  accountId      String               @unique
+  account        Account              @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  loyaltyLevelId String
+  loyaltyLevel   LoyaltyLevel         @relation(fields: [loyaltyLevelId], references: [id])
+  points         Int
+  totalSpent     Float                @default(0)
+  ordersCount    Int                  @default(0)
+  lastActivity   DateTime             @default(now())
+  achievements   Json?
+  transactions   LoyaltyTransaction[]
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  @@map("account_loyalty")
+}
+
+model LoyaltyTransaction {
+  id               String                 @id @default(uuid())
+  accountLoyaltyId String
+  accountLoyalty   AccountLoyalty         @relation(fields: [accountLoyaltyId], references: [id])
+  points           Int
+  type             LoyaltyTransactionType // purchase, review, referral, birthday, achievement
+  orderId          String?
+  description      String?
+  metadata         Json?
+  createdAt        DateTime               @default(now())
+
+  @@map("loyalty_transactions")
+}
+
+enum LoyaltyTransactionType {
+  REVIEW
+  REFERRAL
+  BIRTHDAY
+  PURCHASE
+}
+
+enum OrderStatus {
+  WAITING_FOR_PAYMENT // Ожидает оплаты
+  PAYED // Оплачен
+  PROCESSING // В обработке
+  READY_FOR_DELIVERY // Готов к доставке
+  DELIVERING // Доставляется
+  COMPLETED // Выполнен
+  CANCELED // Отменен
+  RETURNED // Возвращен
+}
+
+enum NotificationType {
+  ORDER
+  REVIEW
+  ACCOUNT
+}
+
+enum RoleName {
+  REGULAR
+  ADMIN
+  SUPER_ADMIN
+  MANAGER
+  SUPPORT
+  EDITOR
+}
+
+enum TokenTypes {
+  RESET_PASSWORD
+  VERIFY_EMAIL
+  TWO_FACTOR_EMAIL
+  TWO_FACTOR_TOTP
+  TELEGRAM_AUTH
+}
+
+enum PaymentMethod {
+  CARD
+  CASH
+  ONLINE_WALLET
+  BANK_TRANSFER
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum DeliveryType {
+  COURIER
+  PICKUP
+  EXPRESS
+}

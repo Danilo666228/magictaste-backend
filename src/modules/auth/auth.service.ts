@@ -11,6 +11,8 @@ import { TotpService } from './totp/totp.service'
 import { TwoFactorService } from './two-factor/two-factor.service'
 import { VerificationService } from './verification/verification.service'
 import { PrismaService } from '@/core/prisma/prisma.service'
+import { LoyaltyLevel } from 'prisma/generated'
+import { LoyaltyService } from '../loyalty/loyalty.service'
 @Injectable()
 export class AuthService {
 	public constructor(
@@ -20,7 +22,8 @@ export class AuthService {
 		private readonly accountService: AccountService,
 		private readonly notificationsService: NotificationsService,
 		private readonly totpService: TotpService,
-		private readonly prismaService: PrismaService
+		private readonly prismaService: PrismaService,
+		private readonly loyaltyLevel: LoyaltyService
 	) {}
 
 	public async signUp(dto: SignUpDto, request: Request, userAgent: string) {
@@ -32,6 +35,8 @@ export class AuthService {
 		const candidate = await this.accountService.createAccount(dto)
 
 		await this.verificationService.sendVerificationToken(candidate, request, userAgent)
+
+		await this.loyaltyLevel.initializeAccountLoyalty(candidate.id)
 
 		await this.notificationsService.sendToAnonymous(request.temporaryId, {
 			type: 'success',

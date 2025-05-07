@@ -15,7 +15,7 @@ export class AuthGuard implements CanActivate {
 		const account = await this.accountService.findAccountById(request.session.accountId)
 
 		request.account = account
-		request.roles = account.roles.map(role => role.name)
+		// request.roles = account.roles.map(role => role.name)
 		request.session.roles = account.roles.map(role => role.name)
 
 		return true

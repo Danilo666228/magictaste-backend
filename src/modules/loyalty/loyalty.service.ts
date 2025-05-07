@@ -167,6 +167,14 @@ export class LoyaltyService {
 	}
 
 	public async initializeAccountLoyalty(accountId: string): Promise<AccountLoyalty> {
+		const existingLoyalty = await this.prismaService.accountLoyalty.findUnique({
+			where: { accountId }
+		})
+
+		if (existingLoyalty) {
+			return existingLoyalty
+		}
+
 		const lowestLevel = await this.prismaService.loyaltyLevel.findFirst({
 			orderBy: {
 				minPoints: 'asc'

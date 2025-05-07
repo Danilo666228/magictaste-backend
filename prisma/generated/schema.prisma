@@ -365,8 +365,8 @@ model SupportMessage {
   senderId   String
   receiverId String
 
-  sender   Account @relation("SenderRelation", fields: [senderId], references: [id])
-  receiver Account @relation("ReceiverRelation", fields: [receiverId], references: [id])
+  sender   Account @relation("SenderRelation", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver Account @relation("ReceiverRelation", fields: [receiverId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -411,7 +411,7 @@ model LoyaltyTransaction {
   accountLoyaltyId String
   accountLoyalty   AccountLoyalty         @relation(fields: [accountLoyaltyId], references: [id])
   points           Int
-  type             LoyaltyTransactionType // purchase, review, referral, birthday, achievement
+  type             LoyaltyTransactionType
   orderId          String?
   description      String?
   metadata         Json?

@@ -1,7 +1,7 @@
 import { CategoryEntity } from '@/core/entities/category.entity'
 import { BadRequestException, Injectable } from '@nestjs/common'
 import { plainToInstance } from 'class-transformer'
-import { PrismaService } from '../../core/prisma/prisma.service'
+import { PrismaService } from '@/core/prisma/prisma.service'
 import { StorageService } from '../libs/storage/storage.service'
 import { CategoryDto } from './dto/category.dto'
 import { NotificationsService } from '../notifications/notifications.service'
@@ -16,7 +16,7 @@ export class CategoryService {
 	) {}
 
 	public async findCategoryById(id: string) {
-		return await this.prismaService.category.findUnique({
+		return this.prismaService.category.findUnique({
 			where: {
 				id
 			},
@@ -88,8 +88,12 @@ export class CategoryService {
 					skip: (page - 1) * limit
 				})
 		})
+		const total = await this.prismaService.category.count()
 
-		return plainToInstance(CategoryEntity, categories)
+		return {
+			categories,
+			total
+		}
 	}
 
 	public async changeCategoryImage(id: string, file: Express.Multer.File) {
@@ -119,7 +123,7 @@ export class CategoryService {
 		})
 	}
 
-	public async removeCategory(id: string) {
+	public async removeCategory(id: string, request: Request) {
 		const category = await this.prismaService.category.findUnique({
 			where: {
 				id
@@ -130,6 +134,12 @@ export class CategoryService {
 		})
 
 		if (category.products.length > 0) {
+			await this.notificationsService.create({
+				accountId: request.session.accountId,
+				title: 'Удаление категории',
+				message: 'Категория не может быть удалена, в ней есть продукты',
+				type: 'error'
+			})
 			throw new BadRequestException('Категория не может быть удалена, пока есть продукты в ней')
 		}
 

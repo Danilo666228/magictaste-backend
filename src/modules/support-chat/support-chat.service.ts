@@ -2,13 +2,17 @@ import { PrismaService } from '@/core/prisma/prisma.service'
 import { Injectable } from '@nestjs/common'
 
 import { ActiveChat, ChatMessageDto } from './types/chat.types'
+import { NotificationsService } from '@/modules/notifications/notifications.service'
 
 @Injectable()
 export class SupportChatService {
 	private connectedUsers = new Map<string, string>() // userId -> socketId
 	private activeChats = new Map<string, ActiveChat>()
 
-	constructor(private prismaService: PrismaService) {}
+	constructor(
+		private prismaService: PrismaService,
+		private readonly notification: NotificationsService
+	) {}
 
 	public userConnected(userId: string, socketId: string) {
 		this.connectedUsers.set(userId, socketId)
@@ -24,7 +28,7 @@ export class SupportChatService {
 	}
 
 	public async saveMessage(messageData: ChatMessageDto) {
-		const savedMessage = await this.prismaService.supportMessage.create({
+		return this.prismaService.supportMessage.create({
 			data: {
 				message: messageData.content,
 				senderId: messageData.sender.id,
@@ -33,8 +37,6 @@ export class SupportChatService {
 				updatedAt: messageData.updatedAt
 			}
 		})
-
-		return savedMessage
 	}
 
 	public async getChatHistory(userId: string) {
@@ -84,13 +86,11 @@ export class SupportChatService {
 				throw new Error('User not found')
 			}
 
-			// Проверяем, есть ли уже активный чат
 			const existingChat = this.activeChats.get(userId)
 			if (existingChat) {
 				return existingChat
 			}
 
-			// Создаем новый чат
 			const newChat: ActiveChat = {
 				account: user,
 				status: 'new',
@@ -102,8 +102,7 @@ export class SupportChatService {
 
 			this.activeChats.set(userId, newChat)
 
-			// Уведомляем администраторов о новом чате
-			this.notifySupportAboutNewChat(userId, user.userName)
+			await this.notifySupportAboutNewChat(userId, user.userName)
 
 			return newChat
 		} catch (error) {
@@ -118,8 +117,6 @@ export class SupportChatService {
 		for (const support of supportUsers) {
 			const supportSocketId = this.getSocketId(support.id)
 			if (supportSocketId) {
-				// Здесь должен быть код для отправки уведомления через сокет
-				console.log(`[Support Service] Notifying support ${support.id} about new chat from ${userName}`)
 			}
 		}
 	}
@@ -145,11 +142,8 @@ export class SupportChatService {
 
 		this.activeChats.set(userId, chat)
 
-		// Уведомляем пользователя о подключении поддержки
 		const userSocketId = this.getSocketId(userId)
 		if (userSocketId) {
-			// Здесь должен быть код для отправки уведомления через сокет
-			console.log(`[Support Service] Notifying user ${userId} about support connection`)
 		}
 
 		return chat
@@ -165,7 +159,6 @@ export class SupportChatService {
 		chat.status = 'finished'
 		chat.updatedAt = new Date()
 
-		// Удаляем чат из активных
 		this.activeChats.delete(userId)
 
 		return { success: true, message: 'Chat finished successfully' }
@@ -178,7 +171,6 @@ export class SupportChatService {
 				// Сначала новые чаты
 				if (a.status === 'new' && b.status !== 'new') return -1
 				if (a.status !== 'new' && b.status === 'new') return 1
-				// Затем по времени создания
 				return b.createdAt.getTime() - a.createdAt.getTime()
 			})
 

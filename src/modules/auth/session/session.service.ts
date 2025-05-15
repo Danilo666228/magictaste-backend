@@ -130,15 +130,8 @@ export class SessionService {
 		if (req.session.id === id) {
 			throw new ConflictException('Текущую сессию удалить нельзя')
 		}
-
 		const sessionKey = `${this.sessionFolder}${id}`
 		await this.redisService.del(sessionKey)
-		await this.notificationsService.create({
-			accountId: req.session.accountId,
-			title: 'Удаление сессии',
-			message: 'Сессия успешно завершена',
-			type: 'success'
-		})
 		return true
 	}
 

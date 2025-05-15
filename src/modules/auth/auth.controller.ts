@@ -1,13 +1,12 @@
 import { Authorization } from '@/shared/decorators/auth/auth.decorator'
 
 import { UserAgent } from '@/shared/decorators/auth/useragent'
-import { Body, Controller, Delete, Get, HttpCode, Post, Req, UseGuards, BadRequestException } from '@nestjs/common'
+import { Body, Controller, Delete, HttpCode, Post, Req } from '@nestjs/common'
 import { Recaptcha } from '@nestlab/google-recaptcha'
 import { Request } from 'express'
 import { SignInDto } from './account/dto/sign-in.dto'
 import { SignUpDto } from './account/dto/sign-up.dto'
 import { AuthService } from './auth.service'
-import { AuthGuard } from '@nestjs/passport'
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger'
 
 @ApiTags('Аутентификация')
@@ -40,16 +39,16 @@ export class AuthController {
 		return await this.authService.logout(request)
 	}
 
-	@Get('google/callback')
-	@UseGuards(AuthGuard('google'))
-	public async googleAuthCallback(@Req() req) {
-		if (!req.user) {
-			throw new BadRequestException('Не удалось получить данные профиля Google')
-		}
-		console.log(req.user)
-		return await this.authService.handleGoogleAuth(req)
-	}
-	@Get('google')
-	@UseGuards(AuthGuard('google'))
-	public async googleAuth() {}
+	// @Get('google/callback')
+	// @UseGuards(AuthGuard('google'))
+	// public async googleAuthCallback(@Req() req) {
+	// 	if (!req.user) {
+	// 		throw new BadRequestException('Не удалось получить данные профиля Google')
+	// 	}
+	// 	console.log(req.user)
+	// 	return await this.authService.handleGoogleAuth(req)
+	// }
+	// @Get('google')
+	// @UseGuards(AuthGuard('google'))
+	// public async googleAuth() {}
 }

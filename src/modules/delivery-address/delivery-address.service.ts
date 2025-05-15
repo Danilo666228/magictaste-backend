@@ -4,6 +4,7 @@ import { BadRequestException, Injectable } from '@nestjs/common'
 import { plainToInstance } from 'class-transformer'
 import { NotificationsService } from '../notifications/notifications.service'
 import { CreateDeliveryAddressDto } from './dto/delivery-address.dto'
+
 @Injectable()
 export class DeliveryAddressService {
 	public constructor(
@@ -50,13 +51,13 @@ export class DeliveryAddressService {
 	}
 
 	public async deleteAddress(accountId: string, addressId: string) {
-		const hasOrders = await this.prismaService.order.findMany({
+		const addressWithOrders = await this.prismaService.order.findMany({
 			where: {
-				deliveryAddressId: addressId
+				deliveryAddressId: addressId,
+				accountId
 			}
 		})
-
-		if (hasOrders) {
+		if (addressWithOrders.length) {
 			await this.notificationsService.create({
 				accountId,
 				title: 'Удаление адреса',
@@ -65,14 +66,12 @@ export class DeliveryAddressService {
 
 			throw new BadRequestException('Этот адрес нельзя удалить, он используется в существующем заказе')
 		}
-
 		await this.prismaService.deliveryAddress.delete({
 			where: {
 				id: addressId,
 				accountId
 			}
 		})
-
 		await this.notificationsService.create({
 			accountId,
 			title: 'Адрес доставки',

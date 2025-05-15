@@ -11,8 +11,8 @@ import { TotpService } from './totp/totp.service'
 import { TwoFactorService } from './two-factor/two-factor.service'
 import { VerificationService } from './verification/verification.service'
 import { PrismaService } from '@/core/prisma/prisma.service'
-import { LoyaltyLevel } from 'prisma/generated'
 import { LoyaltyService } from '../loyalty/loyalty.service'
+
 @Injectable()
 export class AuthService {
 	public constructor(
@@ -46,6 +46,7 @@ export class AuthService {
 
 		return true
 	}
+
 	public async signIn(dto: SignInDto, request: Request, userAgent: string) {
 		const metadata = getSessionMetadata(request, userAgent)
 		const temporaryId = request.headers['temporary-id'] as string
@@ -193,50 +194,34 @@ export class AuthService {
 	}
 
 	public async logout(request: Request) {
-		try {
-			const accountId = request.session.accountId
-			if (!accountId) {
-				throw new UnauthorizedException('Пользователь не авторизован')
-			}
-
-			await this.notificationsService.create({
-				accountId,
-				type: 'success',
-				title: 'Выход из системы',
-				message: 'Сессия успешно завершена'
-			})
-
-			await Promise.all([this.sessionService.destroySession(request), this.sessionService.clearSession(request)])
-
-			return true
-		} catch (error) {
-			if (error instanceof UnauthorizedException) {
-				throw error
-			}
-
-			throw new BadRequestException('Произошла ошибка при выходе из системы')
+		const accountId = request.session.accountId
+		if (!accountId) {
+			throw new UnauthorizedException('Пользователь не авторизован')
 		}
+		await Promise.all([this.sessionService.destroySession(request), this.sessionService.clearSession(request)])
+
+		return true
 	}
 
-	public async handleGoogleAuth(request: any) {
-		let account = await this.prismaService.account.findUnique({
-			where: { email: request.user.email },
-			include: this.accountService.INCLUDE_QUERY
-		})
-
-		if (!account) {
-			account = await this.prismaService.account.create({
-				data: {
-					email: request.user.email,
-					userName: request.user.name,
-					password: '12313'
-				},
-				include: this.accountService.INCLUDE_QUERY
-			})
-		}
-
-		const session = await this.sessionService.saveSession(request, account)
-
-		return session
-	}
+	// public async handleGoogleAuth(request: any) {
+	// 	let account = await this.prismaService.account.findUnique({
+	// 		where: { email: request.user.email },
+	// 		include: this.accountService.INCLUDE_QUERY
+	// 	})
+	//
+	// 	if (!account) {
+	// 		account = await this.prismaService.account.create({
+	// 			data: {
+	// 				email: request.user.email,
+	// 				userName: request.user.name,
+	// 				password: '12313'
+	// 			},
+	// 			include: this.accountService.INCLUDE_QUERY
+	// 		})
+	// 	}
+	//
+	// 	const session = await this.sessionService.saveSession(request, account)
+	//
+	// 	return session
+	// }
 }

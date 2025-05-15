@@ -1,7 +1,8 @@
 import { SessionMetadata } from '@/core/interfaces/session-metadata'
-import { Body, Button, Container, Heading, Hr, Img, Section, Tailwind, Text } from '@react-email/components'
+import { Body, Button, Container, Font, Head, Heading, Hr, Img, Section, Tailwind, Text } from '@react-email/components'
 import { Html } from '@react-email/html'
 import * as React from 'react'
+import { KeyRound } from 'lucide-react'
 
 interface ResetPasswordProps {
 	domain: string
@@ -14,21 +15,26 @@ export function ResetPasswordTemplate({ domain, token, metadata }: ResetPassword
 	return (
 		<Tailwind>
 			<Html>
-				<Body className='bg-gray-50 font-sans'>
-					<Container className='max-w-xl mx-auto my-10 bg-white rounded-xl shadow-lg overflow-hidden'>
-						{/* Header with logo */}
-						<Section className='bg-gradient-to-r from-purple-600 to-pink-600 p-8 text-center'>
-							{/* Replace with your actual logo */}
-							<Img
-								src={`${domain}/images/logo-white.png`}
-								width='120'
-								height='40'
-								alt='Logo'
-								className='mx-auto mb-4'
-							/>
-							<Heading className='text-2xl font-bold text-white m-0'>Сброс пароля</Heading>
+				<Head>
+					<Font
+						fontFamily='Roboto'
+						fallbackFontFamily='Verdana'
+						webFont={{
+							url: 'https://fonts.gstatic.com/s/roboto/v27/KFOmCnqEu92Fr1Mu4mxKKTU1Kg.woff2',
+							format: 'woff2'
+						}}
+						fontWeight={400}
+						fontStyle='normal'
+					/>
+				</Head>
+				<Body className='font-sans'>
+					<Container className='max-w-xl mx-auto my-10 rounded-xl shadow-lg overflow-hidden'>
+						<Section className='p-8 text-center'>
+							<Container>
+								<KeyRound size={36} />
+								<Heading className='text-2xl font-bold m-0'>Сброс пароля</Heading>
+							</Container>
 						</Section>
-
 						<Section className='px-8 py-10'>
 							<Text className='text-gray-700 text-lg mb-4'>Здравствуйте!</Text>
 							<Text className='text-gray-700 mb-6'>
@@ -37,7 +43,7 @@ export function ResetPasswordTemplate({ domain, token, metadata }: ResetPassword
 
 							<Button
 								href={confirmLink}
-								className='bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium rounded-lg py-3 px-8 text-center block mx-auto transition-all shadow-md hover:shadow-lg'>
+								className='box-border w-full rounded-[8px] bg-indigo-600 px-[12px] py-[12px] text-center font-semibold text-white'>
 								Сбросить пароль
 							</Button>
 
@@ -78,7 +84,7 @@ export function ResetPasswordTemplate({ domain, token, metadata }: ResetPassword
 						</Section>
 
 						<Section className='bg-gray-100 p-6 text-center'>
-							<Text className='text-gray-500 text-sm'>© 2023 Ваша Компания. Все права защищены.</Text>
+							<Text className='text-gray-500 text-sm'>© 2025 MagicTaste. Все права защищены.</Text>
 						</Section>
 					</Container>
 				</Body>

@@ -17,6 +17,7 @@ import { CategoryDto } from './dto/category.dto'
 import { FileInterceptor } from '@nestjs/platform-express'
 import { Request } from 'express'
 import { ApiOperation, ApiTags } from '@nestjs/swagger'
+import { Authorization } from '@/shared/decorators/auth/auth.decorator'
 
 @ApiTags('Категории')
 @Controller('category')
@@ -45,10 +46,11 @@ export class CategoryController {
 	}
 
 	@ApiOperation({ summary: 'Удалить категорию' })
+	@Authorization('ADMIN', 'SUPER_ADMIN')
 	@HttpCode(200)
 	@Delete()
-	removeCategory(@Query('categoryId') id: string) {
-		return this.categoryService.removeCategory(id)
+	removeCategory(@Query('categoryId') id: string, @Req() request: Request) {
+		return this.categoryService.removeCategory(id, request)
 	}
 
 	@ApiOperation({ summary: 'Изменить фотографию', deprecated: true })

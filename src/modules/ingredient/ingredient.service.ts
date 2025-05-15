@@ -5,6 +5,7 @@ import { PrismaService } from '../../core/prisma/prisma.service'
 import { StorageService } from '../libs/storage/storage.service'
 import { IngredientDto } from './dto/ingredient.dto'
 import { NotificationsService } from '../notifications/notifications.service'
+
 @Injectable()
 export class IngredientService {
 	constructor(
@@ -110,7 +111,11 @@ export class IngredientService {
 					skip: (page - 1) * limit
 				})
 		})
-		return plainToInstance(IngredientEntity, ingredients)
+		const total = await this.prismaService.ingredient.count()
+		return {
+			ingredients: plainToInstance(IngredientEntity, ingredients),
+			total
+		}
 	}
 
 	public async removeIngredient(id: string): Promise<boolean> {
@@ -132,6 +137,7 @@ export class IngredientService {
 
 		return true
 	}
+
 	public async updateIngredient(id: string, dto: IngredientDto) {
 		return await this.prismaService.ingredient.update({
 			where: {

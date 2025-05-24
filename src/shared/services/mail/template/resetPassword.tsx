@@ -2,7 +2,6 @@ import { SessionMetadata } from '@/core/interfaces/session-metadata'
 import { Body, Button, Container, Font, Head, Heading, Hr, Img, Section, Tailwind, Text } from '@react-email/components'
 import { Html } from '@react-email/html'
 import * as React from 'react'
-import { KeyRound } from 'lucide-react'
 
 interface ResetPasswordProps {
 	domain: string
@@ -31,7 +30,6 @@ export function ResetPasswordTemplate({ domain, token, metadata }: ResetPassword
 					<Container className='max-w-xl mx-auto my-10 rounded-xl shadow-lg overflow-hidden'>
 						<Section className='p-8 text-center'>
 							<Container>
-								<KeyRound size={36} />
 								<Heading className='text-2xl font-bold m-0'>Сброс пароля</Heading>
 							</Container>
 						</Section>

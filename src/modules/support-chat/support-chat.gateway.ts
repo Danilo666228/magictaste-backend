@@ -8,15 +8,16 @@ import {
 	WebSocketServer
 } from '@nestjs/websockets'
 import { Server, Socket } from 'socket.io'
+import { NotificationsService } from '../notifications/notifications.service'
 import { SupportChatService } from './support-chat.service'
 import { ChatMessageDto } from './types/chat.types'
-import { NotificationsService } from '../notifications/notifications.service'
 
 @WebSocketGateway({
 	cors: {
 		origin: '*'
-	}
-	// path: '/api/support-chat/socket.io'
+	},
+	path: '/api/support-chat/socket.io',
+	transports: ['websocket', 'polling']
 })
 export class SupportChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 	@WebSocketServer()

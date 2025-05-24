@@ -14,7 +14,7 @@ import { ChatMessageDto } from './types/chat.types'
 
 @WebSocketGateway({
 	cors: {
-		origin: '*'
+		origin: process.env.ALLOWED_ORIGIN
 	},
 	path: '/api/support-chat/socket.io',
 	transports: ['websocket', 'polling']

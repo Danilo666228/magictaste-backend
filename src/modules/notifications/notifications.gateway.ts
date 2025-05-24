@@ -4,7 +4,7 @@ import { NotificationsService, ToastMessage } from './notifications.service'
 
 @WebSocketGateway({
 	cors: {
-		origin: '*',
+		origin: process.env.ALLOWED_ORIGIN,
 		credentials: true
 	},
 	path: '/api/notifications/socket.io',

@@ -10,6 +10,7 @@ import {
 import { Server, Socket } from 'socket.io'
 import { SupportChatService } from './support-chat.service'
 import { ChatMessageDto } from './types/chat.types'
+import { NotificationsService } from '../notifications/notifications.service'
 
 @WebSocketGateway({
 	cors: {
@@ -21,7 +22,10 @@ export class SupportChatGateway implements OnGatewayConnection, OnGatewayDisconn
 	@WebSocketServer()
 	server: Server
 
-	constructor(private readonly supportChatService: SupportChatService) {}
+	constructor(
+		private readonly supportChatService: SupportChatService,
+		private readonly notification: NotificationsService
+	) {}
 
 	public async handleConnection(client: Socket) {
 		try {
@@ -81,7 +85,13 @@ export class SupportChatGateway implements OnGatewayConnection, OnGatewayDisconn
 	) {
 		const chat = await this.supportChatService.assignChatToSupport(data.userId, data.supportId)
 
-		// Отправляем уведомление пользователю о назначении администратора
+		await this.notification.create({
+			accountId: data.userId,
+			title: 'Чат техподдержки',
+			message: 'К вам подключился сотрудник техподдержки',
+			type: 'success'
+		})
+
 		const userSocketId = this.supportChatService.getSocketId(data.userId)
 		if (userSocketId) {
 			this.server.to(userSocketId).emit('supportAssigned', {
@@ -94,7 +104,7 @@ export class SupportChatGateway implements OnGatewayConnection, OnGatewayDisconn
 	@SubscribeMessage('finishChat')
 	public async handleFinishChat(@ConnectedSocket() client: Socket, @MessageBody() data: { userId: string }) {
 		await this.supportChatService.finishChat(data.userId)
-		// Уведомляем пользователя о завершении чата
+
 		const userSocketId = this.supportChatService.getSocketId(data.userId)
 		if (userSocketId) {
 			this.server.to(userSocketId).emit('chatFinished')

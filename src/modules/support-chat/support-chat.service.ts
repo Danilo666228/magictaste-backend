@@ -1,8 +1,8 @@
 import { PrismaService } from '@/core/prisma/prisma.service'
 import { Injectable } from '@nestjs/common'
 
-import { ActiveChat, ChatMessageDto } from './types/chat.types'
 import { NotificationsService } from '@/modules/notifications/notifications.service'
+import { ActiveChat, ChatMessageDto } from './types/chat.types'
 
 @Injectable()
 export class SupportChatService {
@@ -168,12 +168,11 @@ export class SupportChatService {
 		const activeChatsArray = Array.from(this.activeChats.values())
 			.filter(chat => chat.status !== 'finished')
 			.sort((a, b) => {
-				// Сначала новые чаты
 				if (a.status === 'new' && b.status !== 'new') return -1
 				if (a.status !== 'new' && b.status === 'new') return 1
 				return b.createdAt.getTime() - a.createdAt.getTime()
 			})
-
+		console.log(activeChatsArray)
 		return activeChatsArray
 	}
 

@@ -467,7 +467,7 @@ const config = {
 		isCustomOutput: true
 	},
 	relativeEnvPaths: {
-		rootEnvPath: '../../.env',
+		rootEnvPath: null,
 		schemaEnvPath: '../../.env'
 	},
 	relativePath: '..',
@@ -475,12 +475,11 @@ const config = {
 	engineVersion: '3cff47a7f5d65c3ea74883f1d736e41d68ce91ed',
 	datasourceNames: ['db'],
 	activeProvider: 'postgresql',
-	postinstall: false,
 	inlineDatasources: {
 		db: {
 			url: {
 				fromEnvVar: 'POSTGRES_URI',
-				value: null
+				value: 'postgresql://danil:Den481186@150.241.92.204:5433/backend'
 			}
 		}
 	},

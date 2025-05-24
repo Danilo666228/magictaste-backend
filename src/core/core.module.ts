@@ -29,6 +29,7 @@ import { ScheduleModule } from '@nestjs/schedule'
 import { ProfileModule } from '@/modules/auth/profile/profile.module'
 import { LoyaltyModule } from '@/modules/loyalty/loyalty.module'
 import { TelegramModule } from '@/modules/libs/telegram/telegram.module'
+import { PaymentModule } from '@/modules/libs/payment/payment.module'
 
 @Module({
 	imports: [
@@ -61,7 +62,8 @@ import { TelegramModule } from '@/modules/libs/telegram/telegram.module'
 		PostCommentModule,
 		ProfileModule,
 		LoyaltyModule,
-		TelegramModule
+		TelegramModule,
+		PaymentModule
 	]
 	// providers: [
 	// 	{

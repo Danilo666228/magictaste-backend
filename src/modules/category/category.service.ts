@@ -1,11 +1,11 @@
 import { CategoryEntity } from '@/core/entities/category.entity'
+import { PrismaService } from '@/core/prisma/prisma.service'
 import { BadRequestException, Injectable } from '@nestjs/common'
 import { plainToInstance } from 'class-transformer'
-import { PrismaService } from '@/core/prisma/prisma.service'
-import { StorageService } from '../libs/storage/storage.service'
-import { CategoryDto } from './dto/category.dto'
-import { NotificationsService } from '../notifications/notifications.service'
 import { Request } from 'express'
+import { StorageService } from '../libs/storage/storage.service'
+import { NotificationsService } from '../notifications/notifications.service'
+import { CategoryDto } from './dto/category.dto'
 
 @Injectable()
 export class CategoryService {
@@ -91,7 +91,7 @@ export class CategoryService {
 		const total = await this.prismaService.category.count()
 
 		return {
-			categories,
+			categories: plainToInstance(CategoryEntity, categories),
 			total
 		}
 	}
@@ -184,7 +184,6 @@ export class CategoryService {
 			}
 		})
 
-		// Подсчитываем общее количество продаж для каждой категории
 		const categoriesWithSales = categories.map(category => {
 			const totalSales = category.products.reduce((sum, product) => {
 				return sum + product.orderItem.length
@@ -196,10 +195,8 @@ export class CategoryService {
 			}
 		})
 
-		// Сортируем категории по количеству продаж (по убыванию)
 		const sortedCategories = categoriesWithSales.sort((a, b) => b.totalSales - a.totalSales)
 
-		// Возвращаем только запрошенное количество категорий
 		const topCategories = sortedCategories.slice(0, limit)
 
 		return plainToInstance(CategoryEntity, topCategories)

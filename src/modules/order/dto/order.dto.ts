@@ -50,7 +50,7 @@ export class OrderDto {
 
 	@IsOptional()
 	@IsEnum(PaymentMethod)
-	paymentMethod?: string
+	paymentMethod?: PaymentMethod
 
 	@IsOptional()
 	@IsEnum(DeliveryType)

@@ -57,7 +57,7 @@ export class LoyaltyService {
 		})
 
 		if (!accountLoyalty) {
-			throw new Error('Account loyalty not found')
+			throw new BadRequestException('У вас нету программы лояльности')
 		}
 
 		const transaction = await this.prismaService.loyaltyTransaction.create({

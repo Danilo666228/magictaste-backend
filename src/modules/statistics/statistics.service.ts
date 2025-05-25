@@ -5,11 +5,35 @@ import { Injectable, NotFoundException } from '@nestjs/common'
 export class StatisticsService {
 	constructor(private prisma: PrismaService) {}
 
+	public async getProductsStatistic() {
+		const total = await this.prisma.product.count()
+		const totalSales = await this.prisma.orderItem.aggregate({
+			where: {
+				order: {
+					status: 'COMPLETED'
+				}
+			},
+			_sum: {
+				quantity: true
+			}
+		})
+		const avarageRating = await this.prisma.productComment.aggregate({
+			_avg: {
+				rating: true
+			}
+		})
+
+		return {
+			total,
+			totalSales: totalSales._sum.quantity,
+			avarageRating: avarageRating._avg.rating
+		}
+	}
+
 	public async getSalesStatiscticsV2(period?: string) {
 		const startDate = this.getDateRangeByPeriod(period)
 		const endDate = new Date()
 
-		// Получаем продажи за период с группировкой по дате
 		const sales = await this.prisma.order.groupBy({
 			by: ['createdAt'],
 			where: {
@@ -29,7 +53,6 @@ export class StatisticsService {
 			}
 		})
 
-		// Создаем массив дат за весь период
 		const dates = []
 		const currentDate = new Date(startDate)
 		while (currentDate <= endDate) {
@@ -37,14 +60,12 @@ export class StatisticsService {
 			currentDate.setDate(currentDate.getDate() + 1)
 		}
 
-		// Создаем мапу продаж по датам (оптимизированная версия)
 		const salesMap = new Map()
 		sales.forEach(sale => {
 			const dateKey = sale.createdAt.toISOString().split('T')[0]
 			salesMap.set(dateKey, sale._sum.total || 0)
 		})
 
-		// Формируем результат с учетом всех дат (оптимизированная версия)
 		return dates.map(date => {
 			const dateKey = date.toISOString().split('T')[0]
 			return {
@@ -55,10 +76,8 @@ export class StatisticsService {
 	}
 
 	public async getSalesStatistics(period?: string) {
-		// Определение временного диапазона для текущего периода
 		const currentPeriodStart = this.getDateRangeByPeriod(period)
 
-		// Получение общей статистики продаж за текущий период
 		const totalSales = await this.prisma.order.count({
 			where: {
 				createdAt: currentPeriodStart ? { gte: currentPeriodStart } : undefined,
@@ -66,7 +85,6 @@ export class StatisticsService {
 			}
 		})
 
-		// Получение общей суммы продаж за текущий период
 		const salesData = await this.prisma.order.aggregate({
 			where: {
 				createdAt: currentPeriodStart ? { gte: currentPeriodStart } : undefined,
@@ -77,25 +95,21 @@ export class StatisticsService {
 			}
 		})
 
-		// Рассчитываем даты для предыдущего периода
 		let previousPeriodStart = null
 		let previousPeriodEnd = null
 
 		if (currentPeriodStart) {
-			// Если указан период, вычисляем предыдущий аналогичный период
 			const now = new Date()
 			const periodDuration = now.getTime() - currentPeriodStart.getTime()
 
 			previousPeriodEnd = new Date(currentPeriodStart)
 			previousPeriodStart = new Date(currentPeriodStart.getTime() - periodDuration)
 		} else {
-			// Если период не указан (all-time), используем предыдущий год
 			const oneYearAgo = new Date()
 			oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
 			previousPeriodStart = oneYearAgo
 		}
 
-		// Получаем статистику за предыдущий период
 		const previousSalesCount = await this.prisma.order.count({
 			where: {
 				createdAt: {
@@ -629,7 +643,6 @@ export class StatisticsService {
 				: []
 		])
 
-		// Форматируем новых пользователей
 		const newUserActivities = newUsers.map(user => ({
 			type: 'NEW_USER',
 			date: user.createdAt,
@@ -641,7 +654,6 @@ export class StatisticsService {
 			}
 		}))
 
-		// Форматируем покупки
 		const purchaseActivities = recentPurchases.map(purchase => ({
 			type: 'PURCHASE',
 			date: purchase.orderDate,
@@ -652,7 +664,6 @@ export class StatisticsService {
 			additionalProductsCount: purchase.additionalProductsCount
 		}))
 
-		// Форматируем отзывы (если они есть)
 		const reviewActivities = Array.isArray(productReviews)
 			? productReviews.map(review => ({
 					type: 'REVIEW',
@@ -672,12 +683,10 @@ export class StatisticsService {
 				}))
 			: []
 
-		// Объединяем все активности и сортируем по дате
 		const allActivities = [...purchaseActivities, ...newUserActivities, ...reviewActivities].sort(
 			(a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
 		)
 
-		// Возвращаем ограниченное количество активностей
 		return allActivities.slice(0, limit)
 	}
 

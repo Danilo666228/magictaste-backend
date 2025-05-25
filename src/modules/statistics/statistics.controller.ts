@@ -80,4 +80,9 @@ export class StatisticsController {
 	getActivityFeed(@Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number) {
 		return this.statisticsService.getActivityFeed(limit)
 	}
+
+	@Get('products')
+	public async getProductsStatistic() {
+		return await this.statisticsService.getProductsStatistic()
+	}
 }

@@ -62,5 +62,17 @@ export class PaymentService {
 				}
 			})
 		}
+
+		if (dto.event === 'payment.canceled') {
+			return await this.prismaService.order.update({
+				where: {
+					id: payment.metadata.orderId
+				},
+				data: {
+					status: 'CANCELED',
+					paymentStatus: 'FAILED'
+				}
+			})
+		}
 	}
 }

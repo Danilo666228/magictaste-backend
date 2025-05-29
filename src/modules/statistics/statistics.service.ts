@@ -30,6 +30,14 @@ export class StatisticsService {
 		}
 	}
 
+	public async getCategoryStatistics() {
+		const total = await this.prisma.category.count()
+
+		return {
+			total
+		}
+	}
+
 	public async getSalesStatiscticsV2(period?: string) {
 		const startDate = this.getDateRangeByPeriod(period)
 		const endDate = new Date()
@@ -133,7 +141,6 @@ export class StatisticsService {
 			}
 		})
 
-		// Рассчитываем проценты изменения
 		const currentAmount = salesData._sum.total || 0
 		const previousAmount = previousSalesData._sum.total || 0
 
@@ -169,7 +176,6 @@ export class StatisticsService {
 	async getTopSellingProducts(limit = 10, period?: string) {
 		const dateFrom = this.getDateRangeByPeriod(period)
 
-		// Получение самых продаваемых товаров через OrderItem
 		const topProducts = await this.prisma.orderItem.groupBy({
 			by: ['productId'],
 			where: {
@@ -190,7 +196,6 @@ export class StatisticsService {
 			take: limit
 		})
 
-		// Получение дополнительной информации о продуктах
 		const productsWithDetails = await Promise.all(
 			topProducts.map(async item => {
 				const product = await this.prisma.product.findUnique({
@@ -212,20 +217,16 @@ export class StatisticsService {
 	}
 
 	async getCustomerStatistics(period?: string) {
-		// Определение временного диапазона для текущего периода
 		const currentPeriodStart = this.getDateRangeByPeriod(period)
 
-		// Общее количество клиентов на текущий момент
 		const totalCustomers = await this.prisma.account.count()
 
-		// Новые клиенты за текущий период
 		const newCustomers = await this.prisma.account.count({
 			where: {
 				createdAt: currentPeriodStart ? { gte: currentPeriodStart } : undefined
 			}
 		})
 
-		// Активные клиенты (сделавшие заказ за текущий период)
 		const activeCustomers = await this.prisma.order.groupBy({
 			by: ['accountId'],
 			where: {
@@ -237,25 +238,21 @@ export class StatisticsService {
 			}
 		})
 
-		// Рассчитываем даты для предыдущего периода
 		let previousPeriodStart = null
 		let previousPeriodEnd = null
 
 		if (currentPeriodStart) {
-			// Если указан период, вычисляем предыдущий аналогичный период
 			const now = new Date()
 			const periodDuration = now.getTime() - currentPeriodStart.getTime()
 
 			previousPeriodEnd = new Date(currentPeriodStart)
 			previousPeriodStart = new Date(currentPeriodStart.getTime() - periodDuration)
 		} else {
-			// Если период не указан (all-time), используем предыдущий год
 			const oneYearAgo = new Date()
 			oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
 			previousPeriodStart = oneYearAgo
 		}
 
-		// Получаем количество новых клиентов за предыдущий период
 		const previousNewCustomers = await this.prisma.account.count({
 			where: {
 				createdAt: {
@@ -265,7 +262,6 @@ export class StatisticsService {
 			}
 		})
 
-		// Получаем количество активных клиентов за предыдущий период
 		const previousActiveCustomers = await this.prisma.order.groupBy({
 			by: ['accountId'],
 			where: {
@@ -280,7 +276,6 @@ export class StatisticsService {
 			}
 		})
 
-		// Рассчитываем проценты изменения
 		const currentActiveCount = activeCustomers.length
 		const previousActiveCount = previousActiveCustomers.length
 
@@ -315,7 +310,6 @@ export class StatisticsService {
 	}
 
 	async getOrderStatusStatistics() {
-		// Статистика по статусам заказов
 		const orderStatusStats = await this.prisma.order.groupBy({
 			by: ['status'],
 			_count: {
@@ -323,7 +317,6 @@ export class StatisticsService {
 			}
 		})
 
-		// Преобразуем в более удобный формат
 		const formattedStats = orderStatusStats.reduce((acc, stat) => {
 			acc[stat.status] = stat._count.id
 			return acc
@@ -333,7 +326,6 @@ export class StatisticsService {
 	}
 
 	async getPaymentMethodStatistics() {
-		// Статистика по методам оплаты
 		const paymentMethodStats = await this.prisma.order.groupBy({
 			by: ['paymentMethod'],
 			_count: {
@@ -352,7 +344,6 @@ export class StatisticsService {
 	}
 
 	async getCategoryPerformance() {
-		// Статистика продаж по категориям
 		const categoryStats = await this.prisma.product.groupBy({
 			by: ['categoryId'],
 			_count: {
@@ -367,7 +358,6 @@ export class StatisticsService {
 					select: { id: true, title: true }
 				})
 
-				// Получаем сумму продаж для этой категории
 				const salesData = await this.prisma.orderItem.aggregate({
 					where: {
 						product: {
@@ -395,7 +385,6 @@ export class StatisticsService {
 	}
 
 	async getUserPurchaseStatistics(userId: string) {
-		// Проверяем существование пользователя
 		const user = await this.prisma.account.findUnique({
 			where: { id: userId },
 			select: { id: true, email: true, userName: true }
@@ -405,26 +394,24 @@ export class StatisticsService {
 			throw new NotFoundException(`Пользователь с ID ${userId} не найден`)
 		}
 
-		// Получаем общую статистику заказов пользователя
 		const orderStats = await this.prisma.order.aggregate({
 			where: {
 				accountId: userId
 			},
 			_count: {
-				id: true // Общее количество заказов
+				id: true
 			},
 			_sum: {
-				total: true // Общая сумма всех заказов
+				total: true
 			},
 			_avg: {
-				total: true // Средняя сумма заказа
+				total: true
 			},
 			_max: {
-				total: true // Максимальная сумма заказа
+				total: true
 			}
 		})
 
-		// Получаем статистику по статусам заказов
 		const orderStatusStats = await this.prisma.order.groupBy({
 			by: ['status'],
 			where: {
@@ -435,7 +422,6 @@ export class StatisticsService {
 			}
 		})
 
-		// Получаем последние 5 заказов пользователя
 		const recentOrders = await this.prisma.order.findMany({
 			where: {
 				accountId: userId
@@ -459,7 +445,6 @@ export class StatisticsService {
 			}
 		})
 
-		// Получаем наиболее часто покупаемые товары
 		const frequentlyPurchasedProducts = await this.prisma.orderItem.groupBy({
 			by: ['productId'],
 			where: {
@@ -478,7 +463,6 @@ export class StatisticsService {
 			take: 5
 		})
 
-		// Получаем детали часто покупаемых товаров
 		const topProducts = await Promise.all(
 			frequentlyPurchasedProducts.map(async item => {
 				const product = await this.prisma.product.findUnique({
@@ -495,7 +479,6 @@ export class StatisticsService {
 			})
 		)
 
-		// Формируем итоговую статистику
 		return {
 			user: {
 				id: user.id,
@@ -530,11 +513,10 @@ export class StatisticsService {
 	}
 
 	async getRecentPurchases(limit = 10) {
-		// Получаем последние завершенные заказы с информацией о пользователях
 		const recentOrders = await this.prisma.order.findMany({
 			where: {
 				status: 'COMPLETED',
-				accountId: { not: null } // Только заказы авторизованных пользователей
+				accountId: { not: null }
 			},
 			orderBy: {
 				createdAt: 'desc'
@@ -563,7 +545,6 @@ export class StatisticsService {
 			}
 		})
 
-		// Форматируем данные для отображения в карточках
 		return recentOrders.map(order => ({
 			orderId: order.id,
 			orderDate: order.createdAt,
@@ -596,12 +577,9 @@ export class StatisticsService {
 	}
 
 	async getActivityFeed(limit = 20) {
-		// Получаем различные типы активности для ленты
 		const [recentPurchases, newUsers, productReviews] = await Promise.all([
-			// Последние покупки
 			this.getRecentPurchases(limit / 2),
 
-			// Новые пользователи
 			this.prisma.account.findMany({
 				orderBy: {
 					createdAt: 'desc'
@@ -616,7 +594,6 @@ export class StatisticsService {
 				}
 			}),
 
-			// Последние отзывы о товарах (если у вас есть такая функциональность)
 			this.prisma.productComment
 				? this.prisma.productComment.findMany({
 						orderBy: {

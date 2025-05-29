@@ -49,7 +49,7 @@ export class CategoryService {
 
 		if (category) {
 			await this.notificationsService.create({
-				accountId: request.session.id,
+				accountId: request.session.accountId,
 				title: 'Создание категории',
 				message: 'Категория с таким названием уже существует',
 				type: 'error'
@@ -61,6 +61,13 @@ export class CategoryService {
 			data: {
 				title: dto.title
 			}
+		})
+
+		await this.notificationsService.create({
+			accountId: request.session.accountId,
+			title: 'Создание категории',
+			message: 'Категория успешно создана',
+			type: 'success'
 		})
 
 		return true

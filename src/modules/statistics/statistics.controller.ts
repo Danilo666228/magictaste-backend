@@ -35,10 +35,10 @@ export class StatisticsController {
 		return this.statisticsService.getPaymentMethodStatistics()
 	}
 
-	@Get('categories')
-	getCategoryPerformance() {
-		return this.statisticsService.getCategoryPerformance()
-	}
+	// @Get('categories')
+	// getCategoryPerformance() {
+	// 	return this.statisticsService.getCategoryPerformance()
+	// }
 
 	@Get('dashboard')
 	async getDashboardStatistics(@Query('period') period?: string) {
@@ -84,5 +84,9 @@ export class StatisticsController {
 	@Get('products')
 	public async getProductsStatistic() {
 		return await this.statisticsService.getProductsStatistic()
+	}
+	@Get('categories')
+	public async getCategoryStatistics() {
+		return await this.statisticsService.getCategoryStatistics()
 	}
 }

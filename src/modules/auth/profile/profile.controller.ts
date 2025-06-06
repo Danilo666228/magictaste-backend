@@ -2,9 +2,11 @@ import { AccountEntity } from '@/core/entities/account.entity'
 import { Authorization } from '@/shared/decorators/auth/auth.decorator'
 import { Authorized } from '@/shared/decorators/auth/authorized.decorator'
 import { FileValidationPipe } from '@/shared/pipes/fileValidation.pipe'
-import { Body, Controller, Delete, Get, HttpCode, Put, UploadedFile, UseInterceptors } from '@nestjs/common'
+import { Body, Controller, Delete, Get, HttpCode, Put, Res, UploadedFile, UseInterceptors } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
 import { FileInterceptor } from '@nestjs/platform-express'
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger'
+import { Response } from 'express'
 import { Account } from 'prisma/generated'
 import { AccountService } from '../account/account.service'
 import { NotificationSettingsDto } from './dto/notification-settings.dto'
@@ -18,7 +20,8 @@ import { ProfileService } from './profile.service'
 export class ProfileController {
 	constructor(
 		private readonly profileService: ProfileService,
-		private readonly accountService: AccountService
+		private readonly accountService: AccountService,
+		private readonly configService: ConfigService
 	) {}
 
 	@ApiOperation({
@@ -36,8 +39,26 @@ export class ProfileController {
 	@HttpCode(200)
 	@Authorization()
 	@Get()
-	public async getProfile(@Authorized('id') accountId: string) {
-		return await this.accountService.findAccountById(accountId)
+	public async getProfile(@Authorized('id') accountId: string, @Res() response: Response) {
+		try {
+			const profile = await this.accountService.findAccountById(accountId)
+			return response.json(profile)
+		} catch (error) {
+			const cookieOptions = {
+				domain: this.configService.getOrThrow<string>('SESSION_DOMAIN'),
+				path: '/',
+				secure: this.configService.getOrThrow<boolean>('SESSION_SECURE'),
+				httpOnly: this.configService.getOrThrow<boolean>('SESSION_HTTP_ONLY'),
+				sameSite: this.configService.getOrThrow<string>('SAMESITE') as 'lax' | 'strict' | 'none'
+			}
+
+			response.clearCookie(this.configService.getOrThrow<string>('SESSION_NAME'), cookieOptions)
+
+			return response.status(401).json({
+				statusCode: 401,
+				message: 'Ошибка авторизации. Пожалуйста, войдите снова.'
+			})
+		}
 	}
 
 	@ApiOperation({

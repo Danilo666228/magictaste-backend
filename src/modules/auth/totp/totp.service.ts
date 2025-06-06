@@ -111,6 +111,8 @@ export class TotpService {
 	}
 
 	public async disableTotp(account: AccountEntity) {
+		await this.telegramService.sendDisableTwoFactorEmail(account.accountSettings.telegramId)
+
 		await this.prismaService.accountSettings.update({
 			where: { accountId: account.id },
 			data: { isTwoFactorTotpEnabled: false, totpSecret: null }

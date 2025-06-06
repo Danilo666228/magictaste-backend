@@ -4,17 +4,15 @@ import { ConfigService } from '@nestjs/config'
 
 import { AccountEntity } from '@/core/entities/account.entity'
 import { plainToInstance } from 'class-transformer'
-import { Action, Command, Ctx, Scene, Start, Update } from 'nestjs-telegraf'
+import { Action, Command, Ctx, Start, Update } from 'nestjs-telegraf'
 import { TokenTypes } from 'prisma/generated'
-import { Scenes, Telegraf } from 'telegraf'
+import { Context, Telegraf } from 'telegraf'
 import { BUTTONS } from './telegram.buttons'
 import { MESSAGES } from './telegram.message'
 
-type TelegramContext = Scenes.SceneContext
-
 @Update()
 @Injectable()
-export class TelegramService extends Telegraf<TelegramContext> {
+export class TelegramService extends Telegraf {
 	private readonly _token: string
 
 	public constructor(
@@ -59,23 +57,23 @@ export class TelegramService extends Telegraf<TelegramContext> {
 
 			await ctx.replyWithHTML(MESSAGES.authSuccess, BUTTONS.authSuccess)
 		} else {
-			const user = await this.findUserByChatId(chatId)
+			const account = await this.findUserByChatId(chatId)
 
-			if (user) {
-				return await this.onMe(ctx)
+			if (account) {
+				await ctx.replyWithHTML(MESSAGES.hello(account), BUTTONS.profile)
 			} else {
-				await ctx.replyWithHTML(MESSAGES.welcome, BUTTONS.profile)
+				await ctx.replyWithHTML(MESSAGES.welcome, BUTTONS.auth)
 			}
 		}
 	}
 
-	@Command('me')
-	@Action('me')
-	public async onMe(@Ctx() ctx: any) {
+	@Command('profile')
+	@Action('profile')
+	public async onProfile(@Ctx() ctx: Context) {
 		const chatId = ctx.chat.id.toString()
 		const account = await this.findUserByChatId(chatId)
 
-		await ctx.replyWithHTML(MESSAGES.profile(account), BUTTONS.profile)
+		await ctx.replyWithHTML(MESSAGES.profile(account), BUTTONS.updateProfile)
 	}
 
 	public async sendTwoFactorEmailCode(chatId: string, code: string) {

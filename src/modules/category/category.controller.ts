@@ -74,4 +74,11 @@ export class CategoryController {
 	public async findCategoryById(@Param('categoryId') id: string) {
 		return await this.categoryService.getCategoryById(id)
 	}
+
+	@ApiOperation({ summary: 'Получить категорию по названию' })
+	@HttpCode(200)
+	@Get('title/:title')
+	public async findCategoryByTitle(@Param('title') title: string) {
+		return await this.categoryService.getCategoryByTitle(title)
+	}
 }

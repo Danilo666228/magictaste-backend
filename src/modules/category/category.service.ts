@@ -34,6 +34,15 @@ export class CategoryService {
 		})
 	}
 
+	public async getCategoryByTitle(title: string) {
+		const category = await this.prismaService.category.findUnique({
+			where: {
+				title
+			}
+		})
+		return plainToInstance(CategoryEntity, category)
+	}
+
 	public async getCategoryById(id: string) {
 		const category = await this.findCategoryById(id)
 
